@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoC Ninja — Offline Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070c14;--bg2:#0d1521;--bg3:#111d2e;
+  --surface:#162035;--surface2:#1a2840;
+  --border:rgba(240,165,0,0.2);--border2:rgba(255,255,255,0.07);
+  --gold:#f0a500;--gold-light:#ffc533;--gold-dark:#c47e00;
+  --text:#e8eef8;--text2:#9aadc8;--text3:#5a7090;
+  --green:#4ccd7c;--red:#ff5757;--blue:#4a9eff;--purple:#a855f7;
+  --radius:12px;--radius-sm:8px;
+  --shadow:0 4px 24px rgba(0,0,0,0.5);
+}
+html{font-size:16px;scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden}
+/* SIDEBAR */
+.sidebar{width:68px;background:var(--bg2);border-right:1px solid var(--border2);display:flex;flex-direction:column;align-items:center;padding:16px 0;position:fixed;height:100vh;z-index:100;transition:width .25s ease;overflow:hidden}
+.sidebar:hover{width:200px}
+.logo{font-size:26px;margin-bottom:24px;flex-shrink:0}
+.nav-item{width:100%;display:flex;align-items:center;padding:11px 18px;gap:12px;cursor:pointer;border-radius:0 var(--radius) var(--radius) 0;margin:2px 0;transition:all .2s;color:var(--text2);white-space:nowrap}
+.nav-item:hover,.nav-item.active{background:rgba(240,165,0,0.1);color:var(--gold)}
+.nav-item.active{border-right:3px solid var(--gold)}
+.nav-icon{font-size:20px;min-width:32px;text-align:center}
+.nav-label{font-weight:600;font-size:13px;opacity:0;transition:opacity .2s}
+.sidebar:hover .nav-label{opacity:1}
+/* MAIN */
+.main{margin-left:68px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+/* HEADER */
+.header{background:var(--bg2);border-bottom:1px solid var(--border2);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.header-title{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--gold);letter-spacing:.5px}
+.header-meta{display:flex;align-items:center;gap:12px}
+.profile-btn{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:7px 12px;cursor:pointer;transition:all .2s;color:var(--text);font-size:13px}
+.profile-btn:hover{border-color:var(--gold)}
+.profile-avatar{width:26px;height:26px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px}
+.th-badge{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#000;font-weight:700;font-family:'Rajdhani',sans-serif;padding:4px 11px;border-radius:20px;font-size:13px}
+/* CONTENT */
+.content{padding:24px;flex:1}
+.tab-content{animation:fadeIn .25s ease}
+.page-header{margin-bottom:20px}
+.page-title{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;margin-bottom:2px}
+.page-subtitle{color:var(--text2);font-size:13px}
+/* STATS ROW */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:16px;text-align:center;transition:all .2s;cursor:pointer}
+.stat-card:hover{border-color:var(--border);transform:translateY(-2px)}
+.stat-icon{font-size:22px;margin-bottom:6px}
+.stat-value{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;color:var(--gold)}
+.stat-label{font-size:11px;color:var(--text2);margin-top:2px}
+/* OVERVIEW HERO */
+.overview-hero{display:flex;align-items:center;gap:24px;background:linear-gradient(135deg,var(--surface) 0%,rgba(240,165,0,0.07) 100%);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:24px}
+.big-ring{position:relative;width:96px;height:96px;flex-shrink:0}
+.big-ring svg{transform:rotate(-90deg)}
+.ring-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.ring-pct{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--gold)}
+.ring-sub{font-size:9px;color:var(--text2)}
+.ov-info h2{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700}
+.ov-info p{font-size:12px;color:var(--text2);margin-top:3px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500}
+.chip-gold{background:rgba(240,165,0,0.15);color:var(--gold)}
+.chip-purple{background:rgba(168,85,247,0.15);color:var(--purple)}
+.chip-blue{background:rgba(74,158,255,0.15);color:var(--blue)}
+.chip-green{background:rgba(76,205,124,0.15);color:var(--green)}
+/* FILTERS */
+.filters-bar{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.filter-btn{padding:5px 12px;border:1px solid var(--border2);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-size:12px;transition:all .2s;font-family:'Inter',sans-serif}
+.filter-btn:hover,.filter-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(240,165,0,0.1)}
+/* SECTION HEADER */
+.sec-hdr{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border2)}
+/* BUILDING GRID */
+.building-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+/* BUILDING CARD */
+.building-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;transition:all .2s;position:relative;overflow:hidden}
+.building-card:hover{border-color:var(--border);transform:translateY(-2px);box-shadow:var(--shadow)}
+.building-card.maxed{border-color:rgba(76,205,124,0.3)}
+.building-card.maxed::after{content:'MAX';position:absolute;top:7px;right:7px;background:var(--green);color:#000;font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;letter-spacing:.5px}
+.card-top{display:flex;align-items:flex-start;margin-bottom:10px}
+.card-icon{font-size:28px;margin-right:9px}
+.card-info{flex:1;min-width:0}
+.card-name{font-weight:600;font-size:12px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-lvinfo{font-size:11px;color:var(--text2)}
+/* PROGRESS */
+.progress-bar{height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;margin:6px 0}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold-dark),var(--gold));transition:width .4s ease}
+.progress-fill.maxed{background:linear-gradient(90deg,#2ea85a,var(--green))}
+.progress-text{font-size:10px;color:var(--text3);text-align:right}
+/* LEVEL CONTROL */
+.level-control{display:flex;align-items:center;gap:6px;margin-top:8px}
+.lv-btn{width:24px;height:24px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);border-radius:5px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.lv-btn:hover{border-color:var(--gold);color:var(--gold)}
+.lv-btn:disabled{opacity:.3;cursor:not-allowed}
+.lv-input{flex:1;background:var(--bg);border:1px solid var(--border2);color:var(--text);text-align:center;font-size:13px;font-weight:600;padding:3px 4px;border-radius:5px;font-family:'Rajdhani',sans-serif}
+.lv-input:focus{outline:none;border-color:var(--gold)}
+.max-lbl{font-size:10px;color:var(--text3);white-space:nowrap}
+/* SUB TABS */
+.sub-tabs{display:flex;gap:3px;margin-bottom:18px;background:var(--bg);border-radius:9px;padding:3px;width:fit-content;flex-wrap:wrap}
+.sub-tab{padding:6px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);transition:all .2s;white-space:nowrap}
+.sub-tab.active{background:var(--surface);color:var(--gold);font-weight:600}
+/* TROOP GRID */
+.troop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.troop-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:13px;transition:all .2s;text-align:center}
+.troop-card:hover{border-color:var(--border)}
+.troop-card.maxed{border-color:rgba(76,205,124,0.25)}
+.troop-icon{font-size:30px;margin-bottom:5px}
+.troop-name{font-size:11px;font-weight:600;margin-bottom:6px}
+.troop-prog{font-size:10px;color:var(--text2);margin-top:3px}
+/* HERO GRID */
+.hero-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.hero-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:18px;text-align:center;transition:all .2s}
+.hero-card:hover{border-color:var(--border);transform:translateY(-2px)}
+.hero-emoji{font-size:44px;margin-bottom:10px}
+.hero-name{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;margin-bottom:3px}
+.hero-lv-big{font-size:30px;font-weight:700;color:var(--gold);font-family:'Rajdhani',sans-serif}
+.hero-max-lbl{font-size:12px;color:var(--text2);margin-bottom:10px}
+.ring-wrap{position:relative;width:76px;height:76px;margin:0 auto 10px}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-wrap .rt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;color:var(--gold)}
+/* EQUIP GRID */
+.equip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.equip-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px;text-align:center;transition:all .2s}
+.equip-card:hover{border-color:var(--border)}
+.equip-icon{font-size:26px;margin-bottom:4px}
+.equip-name{font-size:10px;font-weight:600;margin-bottom:4px}
+.equip-rarity{font-size:9px;padding:2px 5px;border-radius:3px;display:inline-block;margin-bottom:4px}
+.r-common{background:rgba(255,255,255,0.08);color:var(--text2)}
+.r-epic{background:rgba(168,85,247,0.15);color:var(--purple)}
+/* BUILDER GRID */
+.builder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-bottom:20px}
+.builder-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:15px;transition:all .2s}
+.builder-card.busy{border-color:rgba(240,165,0,0.4)}
+.builder-card.idle{border-color:rgba(76,205,124,0.25)}
+.bld-hdr{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.bld-icon{font-size:22px}
+.bld-name{font-weight:600;font-size:13px}
+.bld-status{font-size:11px;color:var(--text2)}
+.bld-task{background:var(--bg3);border-radius:7px;padding:9px;margin:7px 0}
+.bld-task-name{font-size:12px;font-weight:500;margin-bottom:3px}
+.bld-task-time{font-size:15px;color:var(--gold);font-family:'Rajdhani',sans-serif;font-weight:700}
+.bld-idle{color:var(--green);font-size:12px;text-align:center;padding:8px 0}
+.bld-add-btn{width:100%;background:rgba(240,165,0,0.08);border:1px dashed rgba(240,165,0,0.35);color:var(--gold);padding:7px;border-radius:7px;cursor:pointer;font-size:12px;transition:all .2s;margin-top:7px}
+.bld-add-btn:hover{background:rgba(240,165,0,0.18)}
+/* WAR */
+.war-log{display:flex;flex-direction:column;gap:10px}
+.war-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;display:flex;align-items:center;gap:14px;transition:all .2s}
+.war-card:hover{border-color:var(--border)}
+.war-result{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;font-family:'Rajdhani',sans-serif;flex-shrink:0}
+.wr-win{background:rgba(76,205,124,0.12);color:var(--green);border:2px solid var(--green)}
+.wr-loss{background:rgba(255,87,87,0.12);color:var(--red);border:2px solid var(--red)}
+.wr-draw{background:rgba(154,173,200,0.12);color:var(--text2);border:2px solid var(--text2)}
+.war-info{flex:1}
+.war-opp{font-weight:600;margin-bottom:3px}
+.war-det{font-size:11px;color:var(--text2)}
+/* PROFILE GRID */
+.profile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.profile-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all .2s}
+.profile-card:hover{border-color:var(--border)}
+.profile-card.selected{border-color:var(--gold);background:rgba(240,165,0,0.04)}
+.pc-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pc-avatar{width:38px;height:38px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px}
+.pc-name{font-weight:600;font-size:14px}
+.pc-th{font-size:11px;color:var(--text2)}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:26px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;margin-bottom:18px;color:var(--gold)}
+/* FORM */
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;color:var(--text2);margin-bottom:5px;display:block}
+.form-input,.form-select{width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;font-family:'Inter',sans-serif}
+.form-input:focus,.form-select:focus{outline:none;border-color:var(--gold)}
+.form-select{cursor:pointer}
+.form-select option{background:var(--bg2)}
+.war-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* BUTTONS */
+.btn{padding:9px 18px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#000}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(240,165,0,.4)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border2)}
+.btn-secondary:hover{border-color:var(--gold);color:var(--gold)}
+.btn-danger{background:rgba(255,87,87,.12);color:var(--red);border:1px solid rgba(255,87,87,.4)}
+.btn-danger:hover{background:rgba(255,87,87,.22)}
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.action-bar{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+/* TH SELECTOR */
+.th-selector{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.th-opt{width:40px;height:40px;border-radius:9px;border:2px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;font-weight:700;font-family:'Rajdhani',sans-serif;font-size:12px;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.th-opt:hover{border-color:var(--gold);color:var(--gold)}
+.th-opt.selected{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#000;border-color:transparent}
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--gold);color:var(--text);padding:10px 16px;border-radius:9px;font-size:13px;z-index:999;animation:fadeIn .3s ease;max-width:260px;box-shadow:var(--shadow)}
+/* EMPTY */
+.empty-state{text-align:center;padding:50px 20px;color:var(--text2)}
+.empty-icon{font-size:44px;margin-bottom:14px}
+.empty-title{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:600;margin-bottom:6px;color:var(--text)}
+.empty-text{font-size:13px;line-height:1.6;max-width:360px;margin:0 auto 18px}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:3px}
+/* ANIM */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.hidden{display:none!important}
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{width:100%;height:60px;bottom:0;top:auto;flex-direction:row;padding:0 6px;justify-content:space-around;border-right:none;border-top:1px solid var(--border2)}
+  .sidebar:hover{width:100%;height:60px}
+  .sidebar:hover .nav-label{opacity:0}
+  .nav-item{padding:6px;justify-content:center;border-radius:var(--radius);flex-direction:column;gap:1px;font-size:9px}
+  .nav-item.active{border-right:none;border-bottom:2px solid var(--gold)}
+  .logo{display:none}
+  .main{margin-left:0;margin-bottom:60px}
+  .content{padding:14px}
+  .overview-hero{flex-direction:column;text-align:center}
+  .building-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .war-form-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="logo">🥷</div>
+  <div class="nav-item active" data-tab="overview" onclick="switchTab('overview')"><span class="nav-icon">📊</span><span class="nav-label">Overview</span></div>
+  <div class="nav-item" data-tab="home" onclick="switchTab('home')"><span class="nav-icon">🏠</span><span class="nav-label">Home Village</span></div>
+  <div class="nav-item" data-tab="builders" onclick="switchTab('builders')"><span class="nav-icon">🔨</span><span class="nav-label">Builder Queue</span></div>
+  <div class="nav-item" data-tab="lab" onclick="switchTab('lab')"><span class="nav-icon">🧪</span><span class="nav-label">Laboratory</span></div>
+  <div class="nav-item" data-tab="heroes" onclick="switchTab('heroes')"><span class="nav-icon">🦸</span><span class="nav-label">Heroes</span></div>
+  <div class="nav-item" data-tab="bb" onclick="switchTab('bb')"><span class="nav-icon">⚒️</span><span class="nav-label">Builder Base</span></div>
+  <div class="nav-item" data-tab="war" onclick="switchTab('war')"><span class="nav-icon">⚔️</span><span class="nav-label">War Stats</span></div>
+  <div class="nav-item" data-tab="profiles" onclick="switchTab('profiles')"><span class="nav-icon">👤</span><span class="nav-label">Profiles</span></div>
+</nav>
+
+<div class="main">
+  <header class="header">
+    <div class="header-title">🥷 CoC Ninja <span style="font-size:12px;color:var(--text2);font-family:'Inter',sans-serif;font-weight:400">Offline Tracker</span></div>
+    <div class="header-meta">
+      <div class="th-badge" id="hdr-th">TH?</div>
+      <div class="profile-btn" onclick="switchTab('profiles')">
+        <div class="profile-avatar" id="hdr-avatar">👤</div>
+        <span id="hdr-name">No Profile</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+    <div id="tab-overview" class="tab-content"><div id="ov-content"></div></div>
+    <div id="tab-home" class="tab-content hidden">
+      <div class="page-header"><div class="page-title">🏠 Home Village</div><div class="page-subtitle">Track all your building upgrades</div></div>
+      <div class="action-bar">
+        <button class="btn btn-secondary" onclick="markAllMax()">✅ Mark All Max</button>
+        <button class="btn btn-secondary" onclick="resetAllHV()">🔄 Reset All</button>
+      </div>
+      <div class="filters-bar" id="hv-filters">
+        <button class="filter-btn active" onclick="setHVFilter('all',this)">All</button>
+        <button class="filter-btn" onclick="setHVFilter('Defense',this)">🛡️ Defenses</button>
+        <button class="filter-btn" onclick="setHVFilter('Resource',this)">🪙 Resources</button>
+        <button class="filter-btn" onclick="setHVFilter('Army',this)">⚔️ Army</button>
+        <button class="filter-btn" onclick="setHVFilter('Trap',this)">💥 Traps</button>
+        <button class="filter-btn" onclick="setHVFilter('incomplete',this)">⏳ Incomplete</button>
+      </div>
+      <div id="hv-content"></div>
+    </div>
+    <div id="tab-builders" class="tab-content hidden"><div class="page-header"><div class="page-title">🔨 Builder Queue</div><div class="page-subtitle">Manage builders and upgrade timers</div></div><div id="bq-content"></div></div>
+    <div id="tab-lab" class="tab-content hidden">
+      <div class="page-header"><div class="page-title">🧪 Laboratory</div><div class="page-subtitle">Track troop and spell research</div></div>
+      <div class="sub-tabs" id="lab-tabs">
+        <div class="sub-tab active" onclick="setLabTab('troops',this)">⚔️ Troops</div>
+        <div class="sub-tab" onclick="setLabTab('dark',this)">🖤 Dark Troops</div>
+        <div class="sub-tab" onclick="setLabTab('spells',this)">🔮 Spells</div>
+        <div class="sub-tab" onclick="setLabTab('darkspells',this)">💜 Dark Spells</div>
+        <div class="sub-tab" onclick="setLabTab('siege',this)">🏰 Siege</div>
+      </div>
+      <div id="lab-content"></div>
+    </div>
+    <div id="tab-heroes" class="tab-content hidden">
+      <div class="page-header"><div class="page-title">🦸 Heroes & Equipment</div><div class="page-subtitle">Track hero levels, equipment and pets</div></div>
+      <div class="sub-tabs">
+        <div class="sub-tab active" onclick="setHeroTab('heroes',this)">🦸 Heroes</div>
+        <div class="sub-tab" onclick="setHeroTab('equipment',this)">⚙️ Equipment</div>
+        <div class="sub-tab" onclick="setHeroTab('pets',this)">🐾 Pets</div>
+      </div>
+      <div id="hero-content"></div>
+    </div>
+    <div id="tab-bb" class="tab-content hidden"><div class="page-header"><div class="page-title">⚒️ Builder Base</div><div class="page-subtitle">Track Builder Base upgrades</div></div><div id="bb-content"></div></div>
+    <div id="tab-war" class="tab-content hidden"><div class="page-header"><div class="page-title">⚔️ Clan War Stats</div><div class="page-subtitle">Log and analyze war performance</div></div><div id="war-content"></div></div>
+    <div id="tab-profiles" class="tab-content hidden"><div class="page-header"><div class="page-title">👤 Profiles</div><div class="page-subtitle">Manage multiple accounts</div></div><div id="prof-content"></div></div>
+  </div>
+</div>
+
+<div id="modal-overlay" class="modal-overlay hidden" onclick="closeBG(event)"><div class="modal" id="modal-box"></div></div>
+<div id="toast-wrap"></div>
+
+<script>
+// ── GAME DATA ────────────────────────────────────────────────
+// Arrays indexed [TH1..TH18] or [BH1..BH10]
+const HV={
+  Defense:[
+    {id:'cannon',name:'Cannon',icon:'💣',res:'gold',count:[0,1,1,1,2,2,3,3,3,3,3,3,3,3,3,3,3,3],max:[0,2,3,5,7,9,11,13,15,17,18,19,20,21,21,21,21,21]},
+    {id:'archer_tower',name:'Archer Tower',icon:'🗼',res:'gold',count:[0,0,1,2,2,3,4,4,5,5,6,6,6,6,6,7,7,7],max:[0,0,2,4,6,8,10,12,14,17,18,19,20,21,21,21,21,21]},
+    {id:'mortar',name:'Mortar',icon:'💥',res:'gold',count:[0,0,0,1,1,2,2,3,3,3,4,4,4,4,4,4,4,4],max:[0,0,0,2,4,6,8,10,11,13,14,15,16,17,18,18,18,18]},
+    {id:'air_def',name:'Air Defense',icon:'🎯',res:'gold',count:[0,0,0,0,1,2,2,3,4,4,4,4,4,4,4,4,4,4],max:[0,0,0,0,2,4,5,7,8,9,10,11,11,11,11,11,11,16]},
+    {id:'wiz_tower',name:'Wizard Tower',icon:'🧙',res:'elixir',count:[0,0,0,0,0,1,2,2,3,4,4,4,4,5,5,5,5,5],max:[0,0,0,0,0,3,5,7,9,11,12,13,14,15,15,15,15,17]},
+    {id:'air_sweep',name:'Air Sweeper',icon:'💨',res:'gold',count:[0,0,0,0,0,1,1,2,2,2,2,2,2,2,2,2,2,2],max:[0,0,0,0,0,3,4,5,6,6,6,6,6,6,6,6,6,6]},
+    {id:'h_tesla',name:'Hidden Tesla',icon:'⚡',res:'gold',count:[0,0,0,0,0,0,0,4,4,4,4,4,4,4,4,4,4,4],max:[0,0,0,0,0,0,0,6,8,9,10,11,12,13,14,14,14,17]},
+    {id:'bomb_tower',name:'Bomb Tower',icon:'🧨',res:'gold',count:[0,0,0,0,0,0,0,0,2,2,2,2,2,2,2,2,2,2],max:[0,0,0,0,0,0,0,0,5,6,7,8,9,10,10,10,10,12]},
+    {id:'xbow',name:'X-Bow',icon:'🏹',res:'dark',count:[0,0,0,0,0,0,0,0,2,4,4,4,4,4,4,4,4,4],max:[0,0,0,0,0,0,0,0,4,5,6,7,8,9,10,10,10,13]},
+    {id:'inferno',name:'Inferno Tower',icon:'🔥',res:'dark',count:[0,0,0,0,0,0,0,0,0,2,2,2,3,3,3,3,3,3],max:[0,0,0,0,0,0,0,0,0,5,6,7,8,9,10,11,12,12]},
+    {id:'eagle',name:'Eagle Artillery',icon:'🦅',res:'gold',count:[0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1],max:[0,0,0,0,0,0,0,0,0,0,4,5,6,7,7,7,7,7]},
+    {id:'scatter',name:'Scattershot',icon:'🌟',res:'gold',count:[0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,2,2,2],max:[0,0,0,0,0,0,0,0,0,0,0,4,5,6,7,7,7,7]},
+    {id:'giga_tesla',name:'Giga Tesla',icon:'⚡',res:'gold',count:[0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1],max:[0,0,0,0,0,0,0,0,0,0,0,0,5,5,5,5,5,5]},
+    {id:'giga_inferno',name:'Giga Inferno',icon:'🔥',res:'dark',count:[0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1],max:[0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,5,5,5]},
+    {id:'spell_tower',name:'Spell Tower',icon:'✨',res:'elixir',count:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,3,3,3],max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4]},
+    {id:'monolith',name:'Monolith',icon:'🗿',res:'dark',count:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1],max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4]},
+    {id:'rico_cannon',name:'Ricochet Cannon',icon:'🔁',res:'gold',count:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2],max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4]},
+    {id:'multi_gear',name:'Multi-Gear Tower',icon:'⚙️',res:'gold',count:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3]},
+    {id:'multi_archer',name:'Multi-Archer Tower',icon:'🏹',res:'gold',count:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2],max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4]},
+    {id:'revenge_tower',name:'Revenge Tower',icon:'⚡',res:'dark',count:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3]},
+    {id:'super_wiz',name:'Super Wizard Tower',icon:'🧙',res:'gold',count:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3]},
+    {id:'walls',name:'Walls',icon:'🧱',res:'gold',count:[0,25,50,75,100,150,175,200,225,250,275,300,325,350,350,350,350,350],max:[0,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,19]},
+  ],
+  Resource:[
+    {id:'gold_mine',name:'Gold Mine',icon:'⛏️',res:'gold',count:[1,2,3,3,4,5,5,6,6,6,6,6,6,6,6,6,6,6],max:[1,3,5,7,8,9,10,11,12,13,14,15,15,15,15,15,15,17]},
+    {id:'elix_coll',name:'Elixir Collector',icon:'💜',res:'gold',count:[1,2,3,3,4,5,5,6,6,6,6,6,6,6,6,6,6,6],max:[1,3,5,7,8,9,10,11,12,13,14,15,15,15,15,15,15,17]},
+    {id:'gold_stor',name:'Gold Storage',icon:'🏦',res:'gold',count:[1,1,2,2,2,3,3,3,3,3,4,4,4,4,4,4,4,4],max:[1,3,5,7,8,9,10,11,12,13,14,15,15,15,15,15,15,19]},
+    {id:'elix_stor',name:'Elixir Storage',icon:'💎',res:'gold',count:[1,1,2,2,2,3,3,3,3,3,4,4,4,4,4,4,4,4],max:[1,3,5,7,8,9,10,11,12,13,14,15,15,15,15,15,15,19]},
+    {id:'dark_drill',name:'DE Drill',icon:'🕳️',res:'gold',count:[0,0,0,0,0,0,1,2,3,3,3,3,3,3,3,3,3,3],max:[0,0,0,0,0,0,4,5,6,7,8,9,9,9,9,9,9,11]},
+    {id:'dark_stor',name:'DE Storage',icon:'🖤',res:'gold',count:[0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1],max:[0,0,0,0,0,0,3,4,5,6,7,8,8,8,8,8,8,13]},
+    {id:'clan_castle',name:'Clan Castle',icon:'🏯',res:'gold',count:[0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],max:[0,0,1,2,3,4,5,6,7,8,9,10,10,10,10,10,10,14]},
+    {id:'town_hall',name:'Town Hall',icon:'🏛️',res:'gold',count:[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],max:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]},
+  ],
+  Army:[
+    {id:'army_camp',name:'Army Camp',icon:'⛺',res:'elixir',count:[1,2,2,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4],max:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,14,14,14,14]},
+    {id:'barracks',name:'Barracks',icon:'⚔️',res:'gold',count:[1,2,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],max:[2,4,6,8,10,11,12,13,14,14,14,14,14,14,14,14,14,19]},
+    {id:'dark_bar',name:'Dark Barracks',icon:'🖤',res:'gold',count:[0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2],max:[0,0,0,0,0,0,4,5,6,7,8,8,8,8,8,8,8,8]},
+    {id:'lab',name:'Laboratory',icon:'🧪',res:'gold',count:[0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],max:[0,0,0,3,4,5,6,7,8,9,10,11,12,12,12,12,12,16]},
+    {id:'spell_fac',name:'Spell Factory',icon:'✨',res:'gold',count:[0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1],max:[0,0,0,0,0,4,4,5,6,7,7,7,7,7,7,7,7,9]},
+    {id:'dark_spell',name:'Dark Spell Factory',icon:'💜',res:'dark',count:[0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1],max:[0,0,0,0,0,0,0,0,4,4,5,5,5,5,5,5,5,5]},
+    {id:'workshop',name:'Workshop',icon:'🏭',res:'gold',count:[0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1],max:[0,0,0,0,0,0,0,0,0,0,0,4,5,6,7,7,7,7]},
+    {id:'pet_house',name:'Pet House',icon:'🐾',res:'dark',count:[0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1],max:[0,0,0,0,0,0,0,0,0,0,0,0,0,6,6,7,7,11]},
+    {id:'blacksmith',name:'Hero Hall',icon:'🏆',res:'gold',count:[0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1],max:[0,0,0,0,0,0,0,0,0,0,0,4,5,6,7,7,7,12]},
+    {id:'scribe',name:'Scribe',icon:'📜',res:'gold',count:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1],max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4]},
+  ],
+  Trap:[
+    {id:'bomb_trap',name:'Bomb',icon:'💣',res:'gold',count:[0,2,2,2,4,4,5,6,6,6,6,6,6,6,7,7,7,7],max:[0,2,3,4,5,6,7,8,8,8,8,8,8,9,9,9,9,9]},
+    {id:'spring',name:'Spring Trap',icon:'🌀',res:'gold',count:[0,0,2,2,4,4,5,6,6,6,6,6,6,6,6,6,6,6],max:[0,0,2,3,4,4,4,5,5,5,5,5,5,5,5,5,5,5]},
+    {id:'air_bomb',name:'Air Bomb',icon:'💨',res:'gold',count:[0,0,0,0,0,4,5,5,5,5,5,5,5,5,5,5,5,5],max:[0,0,0,0,0,3,4,4,5,5,5,5,5,5,5,5,5,5]},
+    {id:'giant_bomb',name:'Giant Bomb',icon:'💥',res:'gold',count:[0,0,0,0,0,0,2,2,4,4,4,5,5,5,5,5,5,5],max:[0,0,0,0,0,0,3,4,4,5,5,5,5,5,5,5,5,5]},
+    {id:'seek_mine',name:'Seeking Air Mine',icon:'🎯',res:'gold',count:[0,0,0,0,0,0,0,2,4,4,5,5,5,5,5,5,5,5],max:[0,0,0,0,0,0,0,2,2,3,3,3,3,3,3,3,3,3]},
+    {id:'skel_trap',name:'Skeleton Trap',icon:'💀',res:'gold',count:[0,0,0,0,0,0,0,0,2,3,3,3,3,3,3,3,3,3],max:[0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3]},
+    {id:'tornado',name:'Tornado Trap',icon:'🌪️',res:'elixir',count:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2],max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4]},
+  ]
+};
+
+const LAB={
+  troops:[
+    {id:'barb',name:'Barbarian',icon:'⚔️',max:[1,2,3,4,5,6,7,8,9,10,10,10,10,10,10,10,10,10]},
+    {id:'arch',name:'Archer',icon:'🏹',max:[1,2,3,4,5,6,7,8,9,10,10,10,10,10,10,10,10,10]},
+    {id:'giant',name:'Giant',icon:'🦍',max:[1,2,3,4,5,6,7,8,9,10,11,11,11,11,11,11,11,11]},
+    {id:'goblin',name:'Goblin',icon:'👺',max:[1,2,3,4,5,6,7,7,8,8,9,9,9,9,9,9,9,9]},
+    {id:'wb',name:'Wall Breaker',icon:'💥',max:[0,2,3,4,5,6,7,8,8,9,9,9,9,9,9,9,9,9]},
+    {id:'balloon',name:'Balloon',icon:'🎈',max:[0,0,3,4,5,6,7,8,9,9,10,10,10,10,10,10,10,10]},
+    {id:'wizard',name:'Wizard',icon:'🧙',max:[0,0,0,0,3,4,5,6,7,8,9,10,10,10,10,10,10,10]},
+    {id:'healer',name:'Healer',icon:'💖',max:[0,0,0,0,0,3,4,5,5,5,6,6,6,6,6,6,6,6]},
+    {id:'dragon',name:'Dragon',icon:'🐉',max:[0,0,0,0,0,0,4,5,6,7,8,9,9,10,10,10,10,10]},
+    {id:'pekka',name:'P.E.K.K.A',icon:'🤖',max:[0,0,0,0,0,0,0,5,6,7,8,9,9,9,9,9,9,9]},
+    {id:'baby_drag',name:'Baby Dragon',icon:'🐲',max:[0,0,0,0,0,0,0,0,5,6,7,8,8,9,9,9,9,9]},
+    {id:'miner',name:'Miner',icon:'⛏️',max:[0,0,0,0,0,0,0,0,5,6,7,8,8,9,9,9,9,9]},
+    {id:'edrag',name:'Electro Dragon',icon:'⚡',max:[0,0,0,0,0,0,0,0,0,0,5,5,6,6,7,7,7,7]},
+    {id:'yeti',name:'Yeti',icon:'🏔️',max:[0,0,0,0,0,0,0,0,0,0,0,4,5,5,5,5,5,5]},
+    {id:'drag_rider',name:'Dragon Rider',icon:'🐉',max:[0,0,0,0,0,0,0,0,0,0,0,0,4,5,5,6,6,6]},
+    {id:'etitan',name:'Electro Titan',icon:'⚡',max:[0,0,0,0,0,0,0,0,0,0,0,0,0,4,5,5,5,5]},
+    {id:'root_rider',name:'Root Rider',icon:'🌿',max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,5,5,5]},
+    {id:'thrower',name:'Thrower',icon:'🪃',max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4]},
+  ],
+  dark:[
+    {id:'minion',name:'Minion',icon:'😈',max:[0,0,0,0,0,0,5,6,7,8,9,10,10,10,10,10,10,10]},
+    {id:'hog',name:'Hog Rider',icon:'🐗',max:[0,0,0,0,0,0,6,7,8,9,10,11,12,13,13,13,13,13]},
+    {id:'valk',name:'Valkyrie',icon:'🛡️',max:[0,0,0,0,0,0,0,5,6,7,8,9,9,10,10,10,10,10]},
+    {id:'golem',name:'Golem',icon:'🪨',max:[0,0,0,0,0,0,0,6,7,8,9,10,11,11,11,11,11,11]},
+    {id:'witch',name:'Witch',icon:'🧙‍♀️',max:[0,0,0,0,0,0,0,0,4,5,5,6,6,6,6,6,6,6]},
+    {id:'lava',name:'Lava Hound',icon:'🌋',max:[0,0,0,0,0,0,0,0,5,5,6,6,6,7,7,7,7,7]},
+    {id:'bowler',name:'Bowler',icon:'🎳',max:[0,0,0,0,0,0,0,0,0,5,5,6,6,7,7,7,7,7]},
+    {id:'ice_golem',name:'Ice Golem',icon:'🧊',max:[0,0,0,0,0,0,0,0,0,0,5,6,6,7,7,7,7,7]},
+    {id:'headhunt',name:'Headhunter',icon:'🎯',max:[0,0,0,0,0,0,0,0,0,0,0,4,5,5,5,5,5,5]},
+    {id:'app_warden',name:'Apprentice Warden',icon:'📚',max:[0,0,0,0,0,0,0,0,0,0,0,0,4,5,5,5,5,5]},
+    {id:'druid',name:'Druid',icon:'🌿',max:[0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,5,5,5]},
+  ],
+  spells:[
+    {id:'lightning',name:'Lightning Spell',icon:'⚡',max:[0,0,0,0,5,6,7,8,9,9,10,10,10,11,11,11,11,11]},
+    {id:'healing',name:'Healing Spell',icon:'💖',max:[0,0,0,0,5,6,7,8,8,8,9,9,9,9,9,9,9,9]},
+    {id:'rage',name:'Rage Spell',icon:'😡',max:[0,0,0,0,4,5,5,6,6,6,6,6,6,6,6,6,6,6]},
+    {id:'freeze',name:'Freeze Spell',icon:'❄️',max:[0,0,0,0,0,0,0,0,5,5,6,6,6,7,7,7,7,7]},
+    {id:'quake',name:'Earthquake Spell',icon:'🌍',max:[0,0,0,0,0,0,0,0,4,5,5,5,5,5,5,5,5,5]},
+    {id:'haste',name:'Haste Spell',icon:'💨',max:[0,0,0,0,0,0,0,0,4,5,5,5,5,5,5,5,5,5]},
+    {id:'clone',name:'Clone Spell',icon:'👥',max:[0,0,0,0,0,0,0,0,0,5,6,6,7,7,7,7,7,7]},
+    {id:'invis',name:'Invisibility Spell',icon:'👻',max:[0,0,0,0,0,0,0,0,0,0,4,5,5,5,5,5,5,5]},
+    {id:'recall',name:'Recall Spell',icon:'🔄',max:[0,0,0,0,0,0,0,0,0,0,0,0,4,5,5,5,5,5]},
+    {id:'revive',name:'Revive Spell',icon:'💫',max:[0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,5,5,5]},
+  ],
+  darkspells:[
+    {id:'poison',name:'Poison Spell',icon:'☠️',max:[0,0,0,0,0,0,0,6,7,8,8,8,8,8,8,8,8,8]},
+    {id:'skeleton',name:'Skeleton Spell',icon:'💀',max:[0,0,0,0,0,0,0,0,5,6,6,7,7,7,7,7,7,7]},
+    {id:'bat',name:'Bat Spell',icon:'🦇',max:[0,0,0,0,0,0,0,0,0,4,5,5,5,5,5,5,5,5]},
+    {id:'overgrowth',name:'Overgrowth Spell',icon:'🌿',max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,5,5,5]},
+  ],
+  siege:[
+    {id:'wall_wrecker',name:'Wall Wrecker',icon:'🏗️',max:[0,0,0,0,0,0,0,0,0,0,0,4,5,5,5,5,5,5]},
+    {id:'blimp',name:'Battle Blimp',icon:'🎈',max:[0,0,0,0,0,0,0,0,0,0,0,4,5,5,5,5,5,5]},
+    {id:'slammer',name:'Stone Slammer',icon:'🪨',max:[0,0,0,0,0,0,0,0,0,0,0,0,4,5,5,5,5,5]},
+    {id:'siege_bar',name:'Siege Barracks',icon:'🏰',max:[0,0,0,0,0,0,0,0,0,0,0,0,4,5,5,5,5,5]},
+    {id:'log',name:'Log Launcher',icon:'🪵',max:[0,0,0,0,0,0,0,0,0,0,0,0,0,4,5,5,5,5]},
+    {id:'flinger',name:'Flame Flinger',icon:'🔥',max:[0,0,0,0,0,0,0,0,0,0,0,0,0,4,5,5,5,5]},
+    {id:'drill_siege',name:'Battle Drill',icon:'⛏️',max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,5,5,5]},
+    {id:'troop_launch',name:'Troop Launcher',icon:'🚀',max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4]},
+  ]
+};
+
+const HEROES=[
+  {id:'bk',name:'Barbarian King',icon:'👑',max:[0,0,0,0,0,0,10,25,40,50,65,75,80,90,95,100,100,100]},
+  {id:'aq',name:'Archer Queen',icon:'🏹',max:[0,0,0,0,0,0,0,0,25,40,55,65,75,85,90,95,100,100]},
+  {id:'gw',name:'Grand Warden',icon:'📚',max:[0,0,0,0,0,0,0,0,0,0,20,40,55,65,70,75,80,80]},
+  {id:'rc',name:'Royal Champion',icon:'🛡️',max:[0,0,0,0,0,0,0,0,0,0,0,0,15,30,45,60,65,70]},
+  {id:'mp',name:'Minion Prince',icon:'😈',max:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,30]},
+];
+
+const EQUIPMENT=[
+  {id:'barb_puppet',name:'Barbarian Puppet',hero:'bk',icon:'🪆',rarity:'common',max:27},
+  {id:'rage_vial',name:'Rage Vial',hero:'bk',icon:'🧪',rarity:'common',max:18},
+  {id:'eq_boots',name:'Earthquake Boots',hero:'bk',icon:'👟',rarity:'epic',max:27},
+  {id:'vampstache',name:'Vampstache',hero:'bk',icon:'🧛',rarity:'epic',max:27},
+  {id:'giant_gaunt',name:'Giant Gauntlet',hero:'bk',icon:'🥊',rarity:'epic',max:27},
+  {id:'spiky_ball',name:'Spiky Ball',hero:'bk',icon:'⚾',rarity:'epic',max:27},
+  {id:'arch_puppet',name:'Archer Puppet',hero:'aq',icon:'🪆',rarity:'common',max:27},
+  {id:'invis_vial',name:'Invisibility Vial',hero:'aq',icon:'👻',rarity:'common',max:18},
+  {id:'giant_arrow',name:'Giant Arrow',hero:'aq',icon:'🏹',rarity:'epic',max:27},
+  {id:'healer_puppet',name:'Healer Puppet',hero:'aq',icon:'💖',rarity:'epic',max:27},
+  {id:'frozen_arrow',name:'Frozen Arrow',hero:'aq',icon:'❄️',rarity:'epic',max:27},
+  {id:'magic_mirror',name:'Magic Mirror',hero:'aq',icon:'🪞',rarity:'epic',max:27},
+  {id:'eternal_tome',name:'Eternal Tome',hero:'gw',icon:'📖',rarity:'common',max:27},
+  {id:'life_gem',name:'Life Gem',hero:'gw',icon:'💎',rarity:'common',max:18},
+  {id:'rage_gem',name:'Rage Gem',hero:'gw',icon:'💠',rarity:'epic',max:27},
+  {id:'healing_tome',name:'Healing Tome',hero:'gw',icon:'📗',rarity:'epic',max:27},
+  {id:'fireball',name:'Fireball',hero:'gw',icon:'🔥',rarity:'epic',max:27},
+  {id:'hench_puppet',name:'Henchmen Puppet',hero:'rc',icon:'🪆',rarity:'common',max:27},
+  {id:'seek_shield',name:'Seeking Shield',hero:'rc',icon:'🛡️',rarity:'common',max:18},
+  {id:'royal_gem',name:'Royal Gem',hero:'rc',icon:'💍',rarity:'epic',max:27},
+  {id:'electro_boots',name:'Electro Boots',hero:'rc',icon:'👟',rarity:'epic',max:27},
+  {id:'hog_puppet',name:'Hog Rider Puppet',hero:'mp',icon:'🪆',rarity:'common',max:27},
+  {id:'dark_orb',name:'Dark Orb',hero:'mp',icon:'🔮',rarity:'epic',max:27},
+];
+
+const PETS=[
+  {id:'lassi',name:'L.A.S.S.I',icon:'🐕',th:14,max:30},
+  {id:'e_owl',name:'Electro Owl',icon:'🦉',th:14,max:30},
+  {id:'mighty_yak',name:'Mighty Yak',icon:'🐂',th:14,max:30},
+  {id:'unicorn',name:'Unicorn',icon:'🦄',th:14,max:30},
+  {id:'frosty',name:'Frosty',icon:'❄️',th:15,max:30},
+  {id:'diggy',name:'Diggy',icon:'🐛',th:15,max:30},
+  {id:'poison_liz',name:'Poison Lizard',icon:'🦎',th:15,max:30},
+  {id:'phoenix',name:'Phoenix',icon:'🔥',th:15,max:30},
+  {id:'spirit_fox',name:'Spirit Fox',icon:'🦊',th:16,max:30},
+  {id:'angry_jelly',name:'Angry Jelly',icon:'🪼',th:16,max:30},
+];
+
+const BB={
+  Defense:[
+    {id:'bb_cannon',name:'Double Cannon',icon:'🔁',count:[0,1,2,2,2,2,3,3,3,3],max:[0,6,8,10,11,12,14,16,18,20]},
+    {id:'bb_archer',name:'Archer Tower',icon:'🗼',count:[0,1,1,2,2,3,4,4,5,5],max:[0,5,7,9,11,13,14,15,16,18]},
+    {id:'bb_fire',name:'Firecrackers',icon:'🎇',count:[0,0,1,2,2,2,3,3,4,4],max:[0,0,5,7,9,11,12,14,16,18]},
+    {id:'bb_crusher',name:'Crusher',icon:'🔨',count:[0,0,0,1,1,2,2,2,3,3],max:[0,0,0,5,7,9,11,13,14,16]},
+    {id:'bb_guard',name:'Guard Post',icon:'🛡️',count:[0,0,0,0,1,1,2,2,2,2],max:[0,0,0,0,5,7,9,11,11,11]},
+    {id:'bb_roaster',name:'Roaster',icon:'🔥',count:[0,0,0,0,0,1,1,2,2,2],max:[0,0,0,0,0,5,7,9,11,12]},
+    {id:'bb_gcannon',name:'Giant Cannon',icon:'💣',count:[0,0,0,0,0,0,1,1,2,2],max:[0,0,0,0,0,0,5,8,10,12]},
+    {id:'bb_tesla',name:'Mega Tesla',icon:'⚡',count:[0,0,0,0,0,0,0,1,1,2],max:[0,0,0,0,0,0,0,5,8,10]},
+    {id:'bb_lava',name:'Lava Launcher',icon:'🌋',count:[0,0,0,0,0,0,0,0,1,1],max:[0,0,0,0,0,0,0,0,5,8]},
+    {id:'bb_xbow',name:'X-Bow (BB)',icon:'🏹',count:[0,0,0,0,0,0,0,0,0,2],max:[0,0,0,0,0,0,0,0,0,6]},
+    {id:'bb_mortar',name:'Multi Mortar',icon:'💥',count:[0,1,1,1,2,2,2,2,2,2],max:[0,6,8,10,11,12,13,14,15,16]},
+  ],
+  Resource:[
+    {id:'bb_gmine',name:'Gold Mine',icon:'⛏️',count:[1,2,3,3,4,4,4,4,4,4],max:[2,4,6,8,10,12,12,14,14,14]},
+    {id:'bb_ecoll',name:'Elixir Collector',icon:'💜',count:[1,2,3,3,4,4,4,4,4,4],max:[2,4,6,8,10,12,12,14,14,14]},
+    {id:'bb_gstor',name:'Gold Storage',icon:'🏦',count:[1,1,1,2,2,2,2,2,2,2],max:[2,4,6,8,10,12,12,14,14,14]},
+    {id:'bb_estor',name:'Elixir Storage',icon:'💎',count:[1,1,1,2,2,2,2,2,2,2],max:[2,4,6,8,10,12,12,14,14,14]},
+    {id:'builder_hall',name:'Builder Hall',icon:'🏗️',count:[1,1,1,1,1,1,1,1,1,1],max:[1,2,3,4,5,6,7,8,9,10]},
+    {id:'bb_clock',name:'Clock Tower',icon:'🕰️',count:[0,1,1,1,1,1,1,1,1,1],max:[0,5,7,9,11,12,13,14,15,16]},
+  ],
+  Army:[
+    {id:'bb_bar',name:'Builder Barracks',icon:'⚔️',count:[1,1,2,2,2,2,2,2,2,2],max:[2,3,5,6,7,8,9,9,9,9]},
+    {id:'bb_lab',name:'Star Laboratory',icon:'🧪',count:[0,0,1,1,1,1,1,1,1,1],max:[0,0,4,5,6,7,8,8,8,8]},
+    {id:'otto',name:"O.T.T.O's Outpost",icon:'🤖',count:[0,0,0,0,0,0,0,0,0,1],max:[0,0,0,0,0,0,0,0,0,5]},
+  ],
+  Trap:[
+    {id:'bb_push',name:'Push Trap',icon:'🌀',count:[0,2,2,4,4,4,4,4,4,4],max:[0,3,4,5,6,7,8,9,9,9]},
+    {id:'bb_mine',name:'Mine',icon:'💣',count:[0,0,2,4,4,4,6,6,6,6],max:[0,0,3,4,5,6,7,8,8,8]},
+    {id:'bb_mega',name:'Mega Mine',icon:'💥',count:[0,0,0,0,2,2,2,4,4,4],max:[0,0,0,0,3,4,5,6,7,8]},
+  ]
+};
+
+// ── COC API ID MAPPINGS ──────────────────────────────────────
+const CM={
+  heroes:{28000000:'bk',28000001:'aq',28000002:'gw',28000004:'rc',28000006:'mp'},
+  equip:{
+    90000000:'barb_puppet',90000001:'rage_vial',90000002:'eq_boots',90000003:'vampstache',
+    90000004:'giant_gaunt',90000005:'spiky_ball',90000006:'arch_puppet',90000007:'invis_vial',
+    90000008:'giant_arrow',90000009:'healer_puppet',90000010:'frozen_arrow',90000011:'magic_mirror',
+    90000012:'eternal_tome',90000013:'life_gem',90000014:'rage_gem',90000015:'healing_tome',
+    90000016:'fireball',90000017:'hench_puppet',90000018:'seek_shield',90000019:'royal_gem',
+    90000020:'electro_boots',90000022:'hog_puppet',90000024:'dark_orb'
+  },
+  pets:{
+    73000000:'lassi',73000001:'e_owl',73000002:'mighty_yak',73000003:'unicorn',
+    73000004:'frosty',73000007:'diggy',73000008:'poison_liz',73000009:'phoenix',
+    73000010:'spirit_fox',73000011:'angry_jelly'
+  },
+  troops:{
+    4000000:'barb',4000001:'arch',4000002:'giant',4000003:'goblin',4000004:'wb',
+    4000005:'balloon',4000006:'wizard',4000007:'healer',4000008:'dragon',4000009:'pekka',
+    4000010:'baby_drag',4000011:'miner',4000012:'edrag',4000013:'yeti',4000015:'drag_rider',
+    4000017:'etitan',4000022:'root_rider',4000023:'thrower',
+    4000024:'minion',4000053:'hog',4000058:'valk',4000059:'golem',4000065:'witch',
+    4000082:'lava',4000095:'bowler',4000097:'ice_golem',4000110:'headhunt',
+    4000123:'app_warden',4000132:'druid',4000150:'minion',4000177:'thrower'
+  },
+  spells:{
+    26000000:'lightning',26000001:'healing',26000002:'rage',26000003:'freeze',
+    26000005:'quake',26000009:'invis',26000010:'haste',26000011:'clone',
+    26000016:'poison',26000017:'skeleton',26000028:'bat',26000035:'recall',
+    26000053:'revive',26000070:'overgrowth'
+  },
+  siege:{
+    4000051:'wall_wrecker',4000052:'blimp',4000062:'slammer',4000075:'siege_bar',
+    4000087:'log',4000091:'flinger',4000092:'drill_siege',4000135:'troop_launch'
+  },
+  buildings:{
+    1000000:'cannon',1000001:'archer_tower',1000002:'mortar',1000003:'air_def',
+    1000004:'wiz_tower',1000005:'h_tesla',1000006:'air_sweep',1000007:'bomb_tower',
+    1000009:'xbow',1000010:'walls',1000011:'inferno',1000012:'eagle',
+    1000013:'scatter',1000014:'clan_castle',1000015:'builder_hut',
+    1000019:'gold_mine',1000020:'elix_coll',1000021:'gold_stor',
+    1000023:'elix_stor',1000024:'dark_stor',1000026:'dark_drill',
+    1000027:'barracks',1000028:'dark_bar',1000029:'lab',1000032:'spell_fac',
+    1000059:'workshop',1000064:'scribe',1000067:'blacksmith',1000068:'pet_house'
+  }
+};
+
+function isCoCFmt(d){return d&&d.tag&&(d.heroes||d.buildings||d.units);}
+
+function parseCoCData(d){
+  // Detect TH level: look for entry with gear_up flag (Town Hall modifier)
+  let thLv=14;
+  if(d.buildings){
+    const thE=d.buildings.find(b=>b.gear_up!==undefined);
+    if(thE&&thE.lvl>=1&&thE.lvl<=18)thLv=thE.lvl;
+  }
+  const p=mkProfile(d.tag||'Imported',thLv);
+  p.emoji='⚔️';
+
+  // Heroes
+  (d.heroes||[]).forEach(h=>{const id=CM.heroes[h.data];if(id)p.heroLv[id]=h.lvl;});
+
+  // Equipment
+  (d.equipment||[]).forEach(e=>{const id=CM.equip[e.data];if(id)p.equipLv[id]=e.lvl;});
+
+  // Pets
+  (d.pets||[]).forEach(pt=>{const id=CM.pets[pt.data];if(id)p.petLv[id]=pt.lvl;});
+
+  // Troops (regular + dark combined in units)
+  (d.units||[]).forEach(u=>{const id=CM.troops[u.data];if(id)p.labLv[id]=u.lvl;});
+
+  // Spells
+  (d.spells||[]).forEach(s=>{const id=CM.spells[s.data];if(id)p.labLv[id]=s.lvl;});
+
+  // Siege machines
+  (d.siege_machines||[]).forEach(sm=>{const id=CM.siege[sm.data];if(id)p.labLv[id]=sm.lvl;});
+
+  // Buildings — group instances by app ID, assign indices sorted descending
+  if(d.buildings){
+    const byId={};
+    d.buildings.forEach(b=>{
+      if(b.gear_up!==undefined)return;// skip TH entry
+      const id=CM.buildings[b.data];if(!id)return;
+      if(!byId[id])byId[id]=[];
+      const cnt=b.cnt||1;
+      for(let i=0;i<cnt;i++)byId[id].push(b.lvl);
+    });
+    Object.entries(byId).forEach(([id,lvls])=>{
+      lvls.sort((a,b)=>b-a);
+      lvls.forEach((lv,i)=>{p.hvLv[id+'_'+i]=lv;});
+    });
+  }
+
+  return p;
+}
+
+// ── STATE ────────────────────────────────────────────────────
+const KEY='coc_ninja_v1';
+let S={profiles:{},pid:null};
+let currentTab='overview',hvFilter='all',labTab='troops',heroTab='heroes';
+let timerIv=null;
+
+function load(){try{const d=localStorage.getItem(KEY);if(d)S=JSON.parse(d)}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+function prof(){return S.pid?S.profiles[S.pid]||null:null}
+function th(){return prof()?prof().th:14}
+function bh(){return prof()?prof().bh:9}
+
+function mkProfile(name,thLv=14){
+  return{id:'p'+Date.now(),name,emoji:'🏆',th:thLv,bh:9,builderCount:5,
+    hvLv:{},bbLv:{},labLv:{},heroLv:{},equipLv:{},petLv:{},
+    builderQ:[],wars:[],created:Date.now()};
+}
+
+function getHV(bid,i){const p=prof();return p?(p.hvLv[bid+'_'+i]??0):0}
+function setHV(bid,i,v){const p=prof();if(!p)return;p.hvLv[bid+'_'+i]=v;save()}
+function getBB(bid,i){const p=prof();return p?(p.bbLv[bid+'_'+i]??0):0}
+function setBB(bid,i,v){const p=prof();if(!p)return;p.bbLv[bid+'_'+i]=v;save()}
+function getLab(id){const p=prof();return p?(p.labLv[id]??0):0}
+function setLab(id,v){const p=prof();if(!p)return;p.labLv[id]=v;save()}
+function getHero(id){const p=prof();return p?(p.heroLv[id]??0):0}
+function setHero(id,v){const p=prof();if(!p)return;p.heroLv[id]=v;save()}
+function getEquip(id){const p=prof();return p?(p.equipLv[id]??0):0}
+function setEquip(id,v){const p=prof();if(!p)return;p.equipLv[id]=v;save()}
+function getPet(id){const p=prof();return p?(p.petLv[id]??0):0}
+function setPet(id,v){const p=prof();if(!p)return;p.petLv[id]=v;save()}
+
+// ── STATS ────────────────────────────────────────────────────
+function hvStats(pid){
+  const savedPid=S.pid; if(pid)S.pid=pid;
+  const ti=th()-1; let tot=0,done=0,tLv=0,mLv=0;
+  for(const cat of Object.values(HV)){
+    for(const b of cat){
+      const cnt=b.count[ti],mx=b.max[ti];
+      if(!cnt||!mx)continue;
+      for(let i=0;i<cnt;i++){
+        const c=getHV(b.id,i);
+        tot++;mLv+=mx;tLv+=Math.min(c,mx);
+        if(c>=mx)done++;
+      }
+    }
+  }
+  if(pid)S.pid=savedPid;
+  return{tot,done,pct:mLv?Math.round(tLv/mLv*100):0};
+}
+function labStats(){
+  const ti=th()-1; let tot=0,done=0;
+  const all=[...LAB.troops,...LAB.dark,...LAB.spells,...LAB.darkspells,...LAB.siege];
+  for(const it of all){const mx=it.max[ti];if(!mx)continue;tot++;if(getLab(it.id)>=mx)done++;}
+  return{tot,done,pct:tot?Math.round(done/tot*100):0};
+}
+function heroStats(){
+  const ti=th()-1; let tLv=0,mLv=0;
+  for(const h of HEROES){const mx=h.max[ti];if(!mx)continue;mLv+=mx;tLv+=Math.min(getHero(h.id),mx);}
+  return{pct:mLv?Math.round(tLv/mLv*100):0};
+}
+
+// ── HELPERS ──────────────────────────────────────────────────
+function ring(pct,size=76,stroke=6,color='var(--gold)'){
+  const r=(size-stroke)/2,c=2*Math.PI*r,off=c-(pct/100)*c;
+  return`<svg width="${size}" height="${size}" style="transform:rotate(-90deg)" viewBox="0 0 ${size} ${size}">
+    <circle fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="${stroke}" cx="${size/2}" cy="${size/2}" r="${r}"/>
+    <circle fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round"
+      stroke-dasharray="${c}" stroke-dashoffset="${off}" cx="${size/2}" cy="${size/2}" r="${r}" style="transition:stroke-dashoffset .4s ease"/>
+  </svg>`;
+}
+function bar(pct,maxed=false){
+  return`<div class="progress-bar"><div class="progress-fill${maxed?' maxed':''}" style="width:${pct}%"></div></div>`;
+}
+function fmtMs(ms){
+  if(ms<=0)return'Done!';
+  const s=Math.floor(ms/1000),d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60),sc=s%60;
+  if(d>0)return`${d}d ${h}h ${m}m`;
+  if(h>0)return`${h}h ${m}m ${sc}s`;
+  if(m>0)return`${m}m ${sc}s`;
+  return`${sc}s`;
+}
+function resIcon(r){return r==='gold'?'🪙':r==='elixir'?'💜':'🖤'}
+
+// ── TAB NAV ──────────────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.tab-content').forEach(e=>e.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
+  const el=document.getElementById('tab-'+tab);
+  if(el){el.classList.remove('hidden');}
+  const nav=document.querySelector(`.nav-item[data-tab="${tab}"]`);
+  if(nav)nav.classList.add('active');
+  currentTab=tab;
+  render();
+}
+function render(){
+  const m={'overview':renderOv,'home':renderHV,'builders':renderBQ,'lab':renderLab,
+           'heroes':renderHeroes,'bb':renderBB,'war':renderWar,'profiles':renderProfiles};
+  if(m[currentTab])m[currentTab]();
+}
+
+// ── OVERVIEW ─────────────────────────────────────────────────
+function renderOv(){
+  const p=prof(),el=document.getElementById('ov-content');
+  if(!p){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">🥷</div><div class="empty-title">Welcome to CoC Ninja!</div><div class="empty-text">Create your first profile to start tracking your progress.</div><button class="btn btn-primary" onclick="switchTab('profiles')">Create Profile →</button></div>`;
+    return;
+  }
+  const hv=hvStats(),lab=labStats(),hero=heroStats();
+  const total=Math.round((hv.pct+lab.pct+hero.pct)/3);
+  const wins=p.wars.filter(w=>w.result==='win').length;
+  const losses=p.wars.filter(w=>w.result==='loss').length;
+  const draws=p.wars.filter(w=>w.result==='draw').length;
+  const active=(p.builderQ||[]).filter(q=>q.end>Date.now()).length;
+  el.innerHTML=`
+    <div class="overview-hero">
+      <div class="big-ring">${ring(total,96,8)}<div class="ring-text"><div class="ring-pct">${total}%</div><div class="ring-sub">Overall</div></div></div>
+      <div class="ov-info">
+        <h2>${p.emoji} ${p.name}</h2>
+        <p>Town Hall ${p.th} &nbsp;·&nbsp; Builder Hall ${p.bh}</p>
+        <div class="chips">
+          <span class="chip chip-gold">🏠 HV ${hv.pct}%</span>
+          <span class="chip chip-purple">🧪 Lab ${lab.pct}%</span>
+          <span class="chip chip-blue">🦸 Heroes ${hero.pct}%</span>
+          ${active?`<span class="chip chip-green">🔨 ${active} active</span>`:''}
+        </div>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card" onclick="switchTab('home')"><div class="stat-icon">🏠</div><div class="stat-value">${hv.done}/${hv.tot}</div><div class="stat-label">Buildings Maxed</div></div>
+      <div class="stat-card" onclick="switchTab('lab')"><div class="stat-icon">🧪</div><div class="stat-value">${lab.done}/${lab.tot}</div><div class="stat-label">Lab Done</div></div>
+      <div class="stat-card" onclick="switchTab('heroes')"><div class="stat-icon">🦸</div><div class="stat-value">${hero.pct}%</div><div class="stat-label">Hero Progress</div></div>
+      <div class="stat-card" onclick="switchTab('builders')"><div class="stat-icon">🔨</div><div class="stat-value">${p.builderCount||5}</div><div class="stat-label">Builders</div></div>
+      <div class="stat-card" onclick="switchTab('war')"><div class="stat-icon">⚔️</div><div class="stat-value">${wins}W-${losses}L-${draws}D</div><div class="stat-label">War Record</div></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
+      <button class="btn btn-primary" onclick="switchTab('home')">🏠 Buildings</button>
+      <button class="btn btn-secondary" onclick="switchTab('lab')">🧪 Lab</button>
+      <button class="btn btn-secondary" onclick="switchTab('heroes')">🦸 Heroes</button>
+      <button class="btn btn-secondary" onclick="switchTab('builders')">🔨 Builders</button>
+      <button class="btn btn-secondary" onclick="openWarModal()">⚔️ Log War</button>
+    </div>
+    ${p.wars.length?`<div class="sec-hdr">Recent Wars</div><div class="war-log">${[...p.wars].reverse().slice(0,3).map(w=>`
+      <div class="war-card">
+        <div class="war-result wr-${w.result}">${w.result==='win'?'W':w.result==='loss'?'L':'D'}</div>
+        <div class="war-info"><div class="war-opp">vs ${w.opponent}</div>
+        <div class="war-det">${w.starsWon||0}⭐ won · ${w.starsLost||0} lost · ${w.size||'?'}v${w.size||'?'}</div></div>
+        <span style="font-size:10px;color:var(--text3)">${new Date(w.date).toLocaleDateString()}</span>
+      </div>`).join('')}</div>`:''}
+  `;
+}
+
+// ── HOME VILLAGE ─────────────────────────────────────────────
+function renderHV(){
+  const p=prof(),el=document.getElementById('hv-content');
+  if(!p){el.innerHTML=noProf();return}
+  const ti=th()-1; let html='';
+  for(const [cat,buildings] of Object.entries(HV)){
+    if(hvFilter!=='all'&&hvFilter!==cat&&hvFilter!=='incomplete')continue;
+    let ch='';
+    for(const b of buildings){
+      const cnt=b.count[ti],mx=b.max[ti];
+      if(!cnt||!mx)continue;
+      for(let i=0;i<cnt;i++){
+        const cur=getHV(b.id,i),maxed=cur>=mx,lbl=cnt>1?`${b.name} ${i+1}`:b.name;
+        if(hvFilter==='incomplete'&&maxed)continue;
+        const pct=Math.round(cur/mx*100);
+        ch+=`<div class="building-card${maxed?' maxed':''}">
+          <div class="card-top"><div class="card-icon">${b.icon}</div>
+          <div class="card-info"><div class="card-name" title="${lbl}">${lbl}</div>
+          <div class="card-lvinfo">${resIcon(b.res)} Lv ${cur}/${mx}</div></div></div>
+          ${bar(pct,maxed)}<div class="progress-text">${pct}%</div>
+          <div class="level-control">
+            <button class="lv-btn" onclick="chHV('${b.id}',${i},${cur-1},${mx})" ${cur<=0?'disabled':''}>−</button>
+            <input class="lv-input" type="number" min="0" max="${mx}" value="${cur}"
+              onchange="chHV('${b.id}',${i},+this.value,${mx})" onclick="this.select()">
+            <button class="lv-btn" onclick="chHV('${b.id}',${i},${cur+1},${mx})" ${cur>=mx?'disabled':''}>+</button>
+            <span class="max-lbl">/${mx}</span>
+          </div>
+        </div>`;
+      }
+    }
+    if(ch)html+=`<div class="sec-hdr">${catLabel(cat)}</div><div class="building-grid">${ch}</div>`;
+  }
+  el.innerHTML=html||`<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">All Done!</div><div class="empty-text">Everything maxed at this filter!</div></div>`;
+}
+function catLabel(c){return c==='Defense'?'🛡️ Defenses':c==='Resource'?'🪙 Resources & Special':c==='Army'?'⚔️ Army':'💥 Traps'}
+function setHVFilter(f,btn){
+  hvFilter=f;
+  document.querySelectorAll('#hv-filters .filter-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderHV();
+}
+function chHV(bid,i,v,mx){
+  const b=findHVBuilding(bid);
+  if(!b)return;
+  setHV(bid,i,Math.max(0,Math.min(+v||0,mx)));
+  renderHV();updateHeader();
+}
+function findHVBuilding(id){for(const cat of Object.values(HV)){const f=cat.find(b=>b.id===id);if(f)return f}return null}
+function markAllMax(){
+  const p=prof();if(!p||!confirm('Mark all buildings as max?'))return;
+  const ti=th()-1;
+  for(const cat of Object.values(HV))for(const b of cat){const cnt=b.count[ti],mx=b.max[ti];if(!cnt||!mx)continue;for(let i=0;i<cnt;i++)p.hvLv[b.id+'_'+i]=mx}
+  save();renderHV();toast('All maxed!');
+}
+function resetAllHV(){
+  const p=prof();if(!p||!confirm('Reset all to 0?'))return;
+  p.hvLv={};save();renderHV();toast('Reset!');
+}
+
+// ── BUILDER QUEUE ─────────────────────────────────────────────
+function renderBQ(){
+  const p=prof(),el=document.getElementById('bq-content');
+  if(!p){el.innerHTML=noProf();return}
+  const bc=p.builderCount||5,now=Date.now();
+  const active=(p.builderQ||[]).filter(q=>q.end>now);
+  const done=(p.builderQ||[]).filter(q=>q.end<=now);
+  let html=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+    <span style="font-size:12px;color:var(--text2)">Builders:</span>
+    ${[3,4,5,6].map(n=>`<button class="filter-btn${bc===n?' active':''}" onclick="setBCount(${n})">${n}</button>`).join('')}
+    <button class="btn btn-primary" style="margin-left:auto" onclick="openAddTask()">+ Add Task</button>
+  </div><div class="builder-grid">`;
+  for(let b=0;b<bc;b++){
+    const task=active.find(q=>q.builder===b);
+    const busy=task&&task.end>now;
+    html+=`<div class="builder-card ${busy?'busy':'idle'}">
+      <div class="bld-hdr"><div class="bld-icon">🔨</div><div>
+        <div class="bld-name">Builder ${b+1}</div>
+        <div class="bld-status">${busy?'🟠 Busy':'🟢 Free'}</div>
+      </div></div>
+      ${busy?`<div class="bld-task"><div class="bld-task-name">${task.name}</div>
+        <div class="bld-task-time" id="btm-${b}">...</div></div>
+        ${bar(0)}<div id="bbar-${b}"></div>
+        <button class="btn btn-danger" onclick="doneTask(${b})" style="width:100%;padding:5px;margin-top:7px;font-size:11px">✕ Mark Done</button>`
+      :`<div class="bld-idle">✅ Ready!</div><button class="bld-add-btn" onclick="openAddTask(${b})">+ Assign Task</button>`}
+    </div>`;
+  }
+  html+=`</div>`;
+  if(done.length){
+    html+=`<div class="sec-hdr">Completed</div><div style="display:flex;flex-direction:column;gap:7px">
+      ${done.slice(-5).reverse().map(q=>`<div style="background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:10px 14px;display:flex;justify-content:space-between">
+        <span>✅ ${q.name}</span><span style="font-size:10px;color:var(--text3)">${new Date(q.end).toLocaleDateString()}</span></div>`).join('')}
+      <button class="btn btn-secondary" onclick="clearDone()" style="align-self:flex-start;font-size:12px;padding:6px 12px">Clear History</button>
+    </div>`;
+  }
+  el.innerHTML=html;
+  startTimers(active,bc,now);
+}
+function startTimers(tasks,bc,now){
+  if(timerIv)clearInterval(timerIv);
+  function upd(){
+    const n=Date.now();
+    for(let b=0;b<bc;b++){
+      const t=tasks.find(q=>q.builder===b);
+      if(!t||t.end<=n)continue;
+      const te=document.getElementById('btm-'+b);
+      const tb=document.getElementById('bbar-'+b);
+      if(!te)return clearInterval(timerIv);
+      te.textContent=fmtMs(t.end-n);
+      const total=t.end-(t.start||now);
+      const pct=Math.min(100,(n-(t.start||now))/total*100);
+      if(tb)tb.innerHTML=`<div class="progress-bar" style="margin-top:6px"><div class="progress-fill" style="width:${pct}%"></div></div>`;
+      if(t.end<=n){clearInterval(timerIv);renderBQ();}
+    }
+  }
+  upd();timerIv=setInterval(upd,1000);
+}
+function setBCount(n){const p=prof();if(!p)return;p.builderCount=n;save();renderBQ()}
+function doneTask(b){const p=prof();if(!p)return;p.builderQ=(p.builderQ||[]).filter(q=>q.builder!==b);save();renderBQ()}
+function clearDone(){const p=prof();if(!p)return;const n=Date.now();p.builderQ=(p.builderQ||[]).filter(q=>q.end>n);save();renderBQ()}
+
+// ── LAB ──────────────────────────────────────────────────────
+function setLabTab(t,el){
+  labTab=t;
+  document.querySelectorAll('#lab-tabs .sub-tab').forEach(e=>e.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderLab();
+}
+function renderLab(){
+  const p=prof(),el=document.getElementById('lab-content');
+  if(!p){el.innerHTML=noProf();return}
+  const ti=th()-1;
+  const items=(LAB[labTab]||[]).filter(it=>it.max[ti]>0);
+  if(!items.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-title">Not Available</div><div class="empty-text">Unlock by upgrading your Town Hall.</div></div>`;return}
+  el.innerHTML=`<div class="troop-grid">${items.map(it=>{
+    const mx=it.max[ti],cur=getLab(it.id),maxed=cur>=mx,pct=mx?Math.round(cur/mx*100):0;
+    return`<div class="troop-card${maxed?' maxed':''}">
+      <div class="troop-icon">${it.icon}</div>
+      <div class="troop-name">${it.name}</div>
+      ${bar(pct,maxed)}
+      <div class="troop-prog">Lv ${cur}/${mx}</div>
+      <div class="level-control" style="margin-top:7px">
+        <button class="lv-btn" onclick="chLab('${it.id}',${cur-1},${mx})" ${cur<=0?'disabled':''}>−</button>
+        <input class="lv-input" type="number" min="0" max="${mx}" value="${cur}"
+          onchange="chLab('${it.id}',+this.value,${mx})" onclick="this.select()">
+        <button class="lv-btn" onclick="chLab('${it.id}',${cur+1},${mx})" ${cur>=mx?'disabled':''}>+</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+function chLab(id,v,mx){setLab(id,Math.max(0,Math.min(+v||0,mx)));renderLab()}
+
+// ── HEROES ───────────────────────────────────────────────────
+function setHeroTab(t,el){
+  heroTab=t;
+  el.closest('.sub-tabs').querySelectorAll('.sub-tab').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active');
+  renderHeroes();
+}
+function renderHeroes(){
+  const p=prof(),el=document.getElementById('hero-content');
+  if(!p){el.innerHTML=noProf();return}
+  const ti=th()-1;
+  if(heroTab==='heroes'){
+    const avail=HEROES.filter(h=>h.max[ti]>0);
+    if(!avail.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-title">No Heroes Yet</div><div class="empty-text">Heroes unlock from TH7.</div></div>`;return}
+    el.innerHTML=`<div class="hero-grid">${avail.map(h=>{
+      const mx=h.max[ti],cur=getHero(h.id),maxed=cur>=mx,pct=mx?Math.round(cur/mx*100):0;
+      return`<div class="hero-card">
+        <div class="ring-wrap">${ring(pct,76,6,maxed?'var(--green)':'var(--gold)')}
+          <div class="rt">${pct}%</div></div>
+        <div class="hero-emoji">${h.icon}</div>
+        <div class="hero-name">${h.name}</div>
+        <div class="hero-lv-big">${cur}</div>
+        <div class="hero-max-lbl">/ ${mx} max at TH${th()}</div>
+        <div class="level-control" style="justify-content:center">
+          <button class="lv-btn" onclick="chHero('${h.id}',${cur-1},${mx})" ${cur<=0?'disabled':''}>−</button>
+          <input class="lv-input" type="number" min="0" max="${mx}" value="${cur}"
+            onchange="chHero('${h.id}',+this.value,${mx})" onclick="this.select()" style="max-width:56px">
+          <button class="lv-btn" onclick="chHero('${h.id}',${cur+1},${mx})" ${cur>=mx?'disabled':''}>+</button>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+  } else if(heroTab==='equipment'){
+    el.innerHTML=`<div class="equip-grid">${EQUIPMENT.map(eq=>{
+      const cur=getEquip(eq.id),maxed=cur>=eq.max,pct=Math.round(cur/eq.max*100);
+      return`<div class="equip-card">
+        <div class="equip-icon">${eq.icon}</div>
+        <div class="equip-name">${eq.name}</div>
+        <div class="equip-rarity r-${eq.rarity}">${eq.rarity}</div>
+        ${bar(pct,maxed)}
+        <div style="font-size:10px;color:var(--text2);margin:3px 0">Lv ${cur}/${eq.max}</div>
+        <div class="level-control" style="justify-content:center">
+          <button class="lv-btn" onclick="chEquip('${eq.id}',${cur-1},${eq.max})" ${cur<=0?'disabled':''}>−</button>
+          <input class="lv-input" type="number" min="0" max="${eq.max}" value="${cur}"
+            onchange="chEquip('${eq.id}',+this.value,${eq.max})" onclick="this.select()" style="max-width:46px;font-size:11px">
+          <button class="lv-btn" onclick="chEquip('${eq.id}',${cur+1},${eq.max})" ${cur>=eq.max?'disabled':''}>+</button>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+  } else {
+    const avail=PETS.filter(pt=>pt.th<=th());
+    if(!avail.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-title">No Pets Yet</div><div class="empty-text">Pets unlock at TH14.</div></div>`;return}
+    el.innerHTML=`<div class="troop-grid">${avail.map(pt=>{
+      const cur=getPet(pt.id),maxed=cur>=pt.max,pct=Math.round(cur/pt.max*100);
+      return`<div class="troop-card${maxed?' maxed':''}">
+        <div class="troop-icon">${pt.icon}</div>
+        <div class="troop-name">${pt.name}</div>
+        ${bar(pct,maxed)}
+        <div class="troop-prog">Lv ${cur}/${pt.max}</div>
+        <div class="level-control" style="margin-top:7px">
+          <button class="lv-btn" onclick="chPet('${pt.id}',${cur-1},${pt.max})" ${cur<=0?'disabled':''}>−</button>
+          <input class="lv-input" type="number" min="0" max="${pt.max}" value="${cur}"
+            onchange="chPet('${pt.id}',+this.value,${pt.max})" onclick="this.select()">
+          <button class="lv-btn" onclick="chPet('${pt.id}',${cur+1},${pt.max})" ${cur>=pt.max?'disabled':''}>+</button>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+  }
+}
+function chHero(id,v,mx){setHero(id,Math.max(0,Math.min(+v||0,mx)));renderHeroes()}
+function chEquip(id,v,mx){setEquip(id,Math.max(0,Math.min(+v||0,mx)));renderHeroes()}
+function chPet(id,v,mx){setPet(id,Math.max(0,Math.min(+v||0,mx)));renderHeroes()}
+
+// ── BUILDER BASE ──────────────────────────────────────────────
+function renderBB(){
+  const p=prof(),el=document.getElementById('bb-content');
+  if(!p){el.innerHTML=noProf();return}
+  const bi=bh()-1;
+  let html=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+    <span style="font-size:12px;color:var(--text2)">Builder Hall:</span>
+    ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<div class="th-opt${bh()===n?' selected':''}" onclick="setBH(${n})">BH${n}</div>`).join('')}
+  </div>`;
+  for(const [cat,buildings] of Object.entries(BB)){
+    let ch='';
+    for(const b of buildings){
+      const cnt=b.count[bi],mx=b.max[bi];
+      if(!cnt||!mx)continue;
+      for(let i=0;i<cnt;i++){
+        const cur=getBB(b.id,i),maxed=cur>=mx,lbl=cnt>1?`${b.name} ${i+1}`:b.name;
+        const pct=Math.round(cur/mx*100);
+        ch+=`<div class="building-card${maxed?' maxed':''}">
+          <div class="card-top"><div class="card-icon">${b.icon}</div>
+          <div class="card-info"><div class="card-name">${lbl}</div>
+          <div class="card-lvinfo">🪙 Lv ${cur}/${mx}</div></div></div>
+          ${bar(pct,maxed)}<div class="progress-text">${pct}%</div>
+          <div class="level-control">
+            <button class="lv-btn" onclick="chBB('${b.id}',${i},${cur-1},${mx})" ${cur<=0?'disabled':''}>−</button>
+            <input class="lv-input" type="number" min="0" max="${mx}" value="${cur}"
+              onchange="chBB('${b.id}',${i},+this.value,${mx})" onclick="this.select()">
+            <button class="lv-btn" onclick="chBB('${b.id}',${i},${cur+1},${mx})" ${cur>=mx?'disabled':''}>+</button>
+            <span class="max-lbl">/${mx}</span>
+          </div>
+        </div>`;
+      }
+    }
+    if(ch)html+=`<div class="sec-hdr">${catLabel(cat)}</div><div class="building-grid">${ch}</div>`;
+  }
+  el.innerHTML=html;
+}
+function setBH(n){const p=prof();if(!p)return;p.bh=n;save();renderBB()}
+function chBB(bid,i,v,mx){
+  const b=(()=>{for(const c of Object.values(BB)){const f=c.find(b=>b.id===bid);if(f)return f}})();
+  if(!b)return;setBB(bid,i,Math.max(0,Math.min(+v||0,mx)));renderBB();
+}
+
+// ── WAR STATS ─────────────────────────────────────────────────
+function renderWar(){
+  const p=prof(),el=document.getElementById('war-content');
+  if(!p){el.innerHTML=noProf();return}
+  const wars=p.wars||[];
+  const wins=wars.filter(w=>w.result==='win').length;
+  const losses=wars.filter(w=>w.result==='loss').length;
+  const draws=wars.filter(w=>w.result==='draw').length;
+  const stars=wars.reduce((s,w)=>s+(w.starsWon||0),0);
+  el.innerHTML=`
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-icon">⚔️</div><div class="stat-value">${wars.length}</div><div class="stat-label">Total Wars</div></div>
+      <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-value" style="color:var(--green)">${wins}</div><div class="stat-label">Wins</div></div>
+      <div class="stat-card"><div class="stat-icon">💔</div><div class="stat-value" style="color:var(--red)">${losses}</div><div class="stat-label">Losses</div></div>
+      <div class="stat-card"><div class="stat-icon">🤝</div><div class="stat-value">${draws}</div><div class="stat-label">Draws</div></div>
+      <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-value">${stars}</div><div class="stat-label">Stars Won</div></div>
+    </div>
+    <button class="btn btn-primary" onclick="openWarModal()" style="margin-bottom:20px">+ Log New War</button>
+    ${!wars.length?`<div class="empty-state"><div class="empty-icon">⚔️</div><div class="empty-title">No Wars Logged</div><div class="empty-text">Start logging your clan war results!</div></div>`
+    :`<div class="sec-hdr">War History</div><div class="war-log">${[...wars].reverse().map((w,ri)=>{
+      const idx=wars.length-1-ri;
+      return`<div class="war-card">
+        <div class="war-result wr-${w.result}">${w.result==='win'?'W':w.result==='loss'?'L':'D'}</div>
+        <div class="war-info"><div class="war-opp">vs <strong>${w.opponent}</strong></div>
+        <div class="war-det">${'⭐'.repeat(Math.min(w.starsWon||0,3))} ${w.starsWon||0} won · ${w.starsLost||0} lost · ${w.size||'?'}v${w.size||'?'}${w.notes?`<br><span style="color:var(--text3)">${w.notes}</span>`:''}</div></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span style="font-size:10px;color:var(--text3)">${new Date(w.date).toLocaleDateString()}</span>
+          <button onclick="delWar(${idx})" style="font-size:10px;color:var(--red);background:none;border:none;cursor:pointer">✕</button>
+        </div>
+      </div>`;
+    }).join('')}</div>`}`;
+}
+function delWar(idx){const p=prof();if(!p)return;p.wars.splice(idx,1);save();renderWar()}
+
+// ── PROFILES ─────────────────────────────────────────────────
+function renderProfiles(){
+  const profiles=Object.values(S.profiles),el=document.getElementById('prof-content');
+  el.innerHTML=`
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+      <button class="btn btn-primary" onclick="openNewProfile()">+ New Profile</button>
+      <button class="btn btn-secondary" onclick="openCoCImportModal()">📋 Import CoC Data</button>
+      <button class="btn btn-secondary" onclick="exportData()">📤 Export JSON</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('imp-file').click()">📥 Import Backup</button>
+      <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+    ${!profiles.length?`<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">No Profiles</div><div class="empty-text">Create your first profile to begin tracking.</div><button class="btn btn-primary" onclick="openNewProfile()">Create Profile</button></div>`
+    :`<div class="profile-grid">${profiles.map(pr=>{
+      const sel=pr.id===S.pid;
+      const savedPid=S.pid;S.pid=pr.id;const hv=hvStats();S.pid=savedPid;
+      return`<div class="profile-card${sel?' selected':''}" onclick="selProfile('${pr.id}')">
+        <div class="pc-hdr">
+          <div class="pc-avatar">${pr.emoji||'🏆'}</div>
+          <div><div class="pc-name">${pr.name}</div><div class="pc-th">TH${pr.th} · BH${pr.bh}</div></div>
+          ${sel?'<span style="margin-left:auto;color:var(--gold);font-size:12px">✓ Active</span>':''}
+        </div>
+        ${bar(hv.pct)}
+        <div style="font-size:11px;color:var(--text2);display:flex;justify-content:space-between;margin-top:4px">
+          <span>🏠 ${hv.pct}%</span><span>${hv.done}/${hv.tot} maxed</span>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="event.stopPropagation();openEditProfile('${pr.id}')">✏️ Edit</button>
+          <button class="btn btn-danger" style="padding:5px 10px;font-size:11px" onclick="event.stopPropagation();delProfile('${pr.id}')">🗑️</button>
+        </div>
+      </div>`;
+    }).join('')}</div>`}`;
+}
+function selProfile(id){S.pid=id;save();updateHeader();renderProfiles();toast('Switched to '+S.profiles[id].name)}
+function delProfile(id){
+  if(Object.keys(S.profiles).length<=1){toast('Cannot delete the only profile!');return}
+  if(!confirm('Delete "'+S.profiles[id].name+'"? This cannot be undone!'))return;
+  delete S.profiles[id];
+  if(S.pid===id)S.pid=Object.keys(S.profiles)[0]||null;
+  save();updateHeader();renderProfiles();
+}
+
+// ── MODALS ───────────────────────────────────────────────────
+function openModal(html){document.getElementById('modal-box').innerHTML=html;document.getElementById('modal-overlay').classList.remove('hidden')}
+function closeModal(){document.getElementById('modal-overlay').classList.add('hidden')}
+function closeBG(e){if(e.target===document.getElementById('modal-overlay'))closeModal()}
+
+function openNewProfile(){openProfileModal()}
+function openEditProfile(id){openProfileModal(id)}
+function openProfileModal(id){
+  const ex=id?S.profiles[id]:null;
+  openModal(`
+    <div class="modal-title">${ex?'✏️ Edit Profile':'✨ New Profile'}</div>
+    <div class="form-group"><label class="form-label">Name</label>
+    <input class="form-input" id="m-name" placeholder="My TH14 Account" value="${ex?.name||''}"></div>
+    <div class="form-group"><label class="form-label">Profile Emoji</label>
+    <input class="form-input" id="m-emoji" placeholder="🏆" value="${ex?.emoji||'🏆'}" maxlength="2" style="font-size:20px;text-align:center"></div>
+    <div class="form-group"><label class="form-label">Town Hall Level</label>
+    <div class="th-selector" id="th-sel">${Array.from({length:18},(_,i)=>i+1).map(n=>`<div class="th-opt" id="th${n}" onclick="pickTH(${n})">${n}</div>`).join('')}</div>
+    <input type="hidden" id="m-th" value="${ex?.th||14}"></div>
+    <div class="form-group"><label class="form-label">Builder Hall Level</label>
+    <div class="th-selector" id="bh-sel">${Array.from({length:10},(_,i)=>i+1).map(n=>`<div class="th-opt" id="bh${n}" onclick="pickBH(${n})">${n}</div>`).join('')}</div>
+    <input type="hidden" id="m-bh" value="${ex?.bh||9}"></div>
+    <div class="btn-row"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveProfile('${id||''}')">Save</button></div>
+  `);
+  setTimeout(()=>{pickTH(ex?.th||14);pickBH(ex?.bh||9)},30);
+}
+function pickTH(n){
+  document.querySelectorAll('#th-sel .th-opt').forEach(e=>e.classList.remove('selected'));
+  const e=document.getElementById('th'+n);if(e)e.classList.add('selected');
+  const i=document.getElementById('m-th');if(i)i.value=n;
+}
+function pickBH(n){
+  document.querySelectorAll('#bh-sel .th-opt').forEach(e=>e.classList.remove('selected'));
+  const e=document.getElementById('bh'+n);if(e)e.classList.add('selected');
+  const i=document.getElementById('m-bh');if(i)i.value=n;
+}
+function saveProfile(existId){
+  const name=document.getElementById('m-name').value.trim()||'My Account';
+  const emoji=document.getElementById('m-emoji').value.trim()||'🏆';
+  const thLv=+document.getElementById('m-th').value||14;
+  const bhLv=+document.getElementById('m-bh').value||9;
+  if(existId&&S.profiles[existId]){
+    Object.assign(S.profiles[existId],{name,emoji,th:thLv,bh:bhLv});
+    toast('Profile updated!');
+  } else {
+    const p=mkProfile(name,thLv);p.emoji=emoji;p.bh=bhLv;
+    S.profiles[p.id]=p;if(!S.pid)S.pid=p.id;
+    toast('Profile created!');
+  }
+  save();updateHeader();closeModal();renderProfiles();
+}
+
+// War modal
+function openWarModal(){
+  openModal(`
+    <div class="modal-title">⚔️ Log Clan War</div>
+    <div class="form-group"><label class="form-label">Opponent Clan</label>
+    <input class="form-input" id="m-opp" placeholder="Enemy Clan Name"></div>
+    <div class="war-form-grid">
+      <div class="form-group"><label class="form-label">Result</label>
+      <select class="form-select" id="m-res"><option value="win">🏆 Win</option><option value="loss">💔 Loss</option><option value="draw">🤝 Draw</option></select></div>
+      <div class="form-group"><label class="form-label">War Size</label>
+      <select class="form-select" id="m-size">${[5,10,15,20,25,30,35,40,45,50].map(n=>`<option${n===15?' selected':''}>${n}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Stars Won</label>
+      <input class="form-input" type="number" id="m-sw" min="0" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">Stars Lost</label>
+      <input class="form-input" type="number" id="m-sl" min="0" placeholder="0"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notes (optional)</label>
+    <input class="form-input" id="m-notes" placeholder="e.g. Great war! 3-starred their TH15"></div>
+    <div class="btn-row"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveWar()">Log War</button></div>
+  `);
+}
+function saveWar(){
+  const p=prof();if(!p)return;
+  if(!p.wars)p.wars=[];
+  p.wars.push({
+    opponent:document.getElementById('m-opp').value.trim()||'Unknown',
+    result:document.getElementById('m-res').value,
+    size:+document.getElementById('m-size').value||15,
+    starsWon:+document.getElementById('m-sw').value||0,
+    starsLost:+document.getElementById('m-sl').value||0,
+    notes:document.getElementById('m-notes').value.trim(),
+    date:Date.now()
+  });
+  save();closeModal();toast('War logged!');renderWar();
+}
+
+// Add builder task modal
+function openAddTask(builder){
+  const p=prof();if(!p)return;
+  openModal(`
+    <div class="modal-title">🔨 Add Builder Task</div>
+    <div class="form-group"><label class="form-label">Task Name</label>
+    <input class="form-input" id="m-tname" placeholder="e.g. Cannon Lv 21"></div>
+    <div class="form-group"><label class="form-label">Assign to Builder</label>
+    <select class="form-select" id="m-tbuilder">
+      ${Array.from({length:p.builderCount||5},(_,i)=>`<option value="${i}"${builder===i?' selected':''}>Builder ${i+1}</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label class="form-label">Duration</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Days</div><input class="form-input" type="number" id="m-td" min="0" value="0"></div>
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Hours</div><input class="form-input" type="number" id="m-th2" min="0" max="23" value="0"></div>
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Minutes</div><input class="form-input" type="number" id="m-tm" min="0" max="59" value="0"></div>
+    </div></div>
+    <div class="form-group"><label class="form-label">Or exact end time</label>
+    <input class="form-input" type="datetime-local" id="m-tend"></div>
+    <div class="btn-row"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveTask()">Add Task</button></div>
+  `);
+}
+function saveTask(){
+  const p=prof();if(!p)return;
+  const name=document.getElementById('m-tname').value.trim()||'Upgrade';
+  const builder=+document.getElementById('m-tbuilder').value;
+  const endRaw=document.getElementById('m-tend').value;
+  let end;
+  if(endRaw){end=new Date(endRaw).getTime()}
+  else{
+    const d=+document.getElementById('m-td').value||0;
+    const h=+document.getElementById('m-th2').value||0;
+    const m=+document.getElementById('m-tm').value||0;
+    end=Date.now()+(d*86400+h*3600+m*60)*1000;
+  }
+  if(!p.builderQ)p.builderQ=[];
+  p.builderQ=p.builderQ.filter(q=>q.builder!==builder);
+  p.builderQ.push({id:'t'+Date.now(),name,builder,start:Date.now(),end});
+  save();closeModal();toast('Task added!');renderBQ();
+}
+
+// ── EXPORT / IMPORT ───────────────────────────────────────────
+// ── COC DATA IMPORT MODAL ────────────────────────────────────
+function openCoCImportModal(){
+  openModal(`
+    <div class="modal-title">📋 Import from CoC Data</div>
+    <p style="color:var(--text2);font-size:12px;line-height:1.6;margin-bottom:14px">
+      Paste your Clash of Clans player JSON data below.<br>
+      <span style="color:var(--gold)">Heroes, troops, spells, equipment & pets</span> will be auto-imported.
+    </p>
+    <div class="form-group">
+      <label class="form-label">Player JSON Data</label>
+      <textarea class="form-input" id="coc-json" rows="9"
+        placeholder='{"tag":"#ABC123","heroes":[...],"units":[...],...}'
+        style="font-family:monospace;font-size:11px;resize:vertical"></textarea>
+    </div>
+    <div id="coc-import-status" style="font-size:12px;margin-top:8px;min-height:18px"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="processCoCImport()">⚡ Import →</button>
+    </div>
+  `);
+}
+
+function processCoCImport(){
+  const raw=document.getElementById('coc-json').value.trim();
+  const statusEl=document.getElementById('coc-import-status');
+  try{
+    const data=JSON.parse(raw);
+    if(!isCoCFmt(data))throw new Error('Not a valid CoC player JSON (missing tag/heroes/units)');
+    const p=parseCoCData(data);
+    // Check for existing profile with same tag
+    const existing=Object.values(S.profiles).find(pr=>pr.name===data.tag);
+    if(existing){
+      // Merge into existing
+      Object.assign(existing,{heroLv:p.heroLv,equipLv:p.equipLv,petLv:p.petLv,
+        labLv:p.labLv,hvLv:{...existing.hvLv,...p.hvLv},th:p.th});
+      S.pid=existing.id;
+      save();closeModal();updateHeader();renderProfiles();
+      toast(`✅ Updated profile for ${data.tag} (TH${p.th})`);
+    } else {
+      S.profiles[p.id]=p;
+      if(!S.pid)S.pid=p.id;
+      save();closeModal();updateHeader();renderProfiles();
+      toast(`✅ Imported ${data.tag} → TH${p.th} profile created!`);
+    }
+  }catch(e){
+    if(statusEl)statusEl.innerHTML=`<span style="color:var(--red)">❌ ${e.message}</span>`;
+  }
+}
+
+function exportData(){
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  a.download=`coc-ninja-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();URL.revokeObjectURL(url);toast('Exported!');
+}
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(!d.profiles)throw new Error();
+      if(!confirm('Import? This will merge profiles.'))return;
+      for(const[id,pr]of Object.entries(d.profiles))if(!S.profiles[id])S.profiles[id]=pr;
+      if(!S.pid&&Object.keys(S.profiles).length)S.pid=Object.keys(S.profiles)[0];
+      save();updateHeader();renderProfiles();toast('Imported!');
+    }catch{toast('Invalid backup file!')}
+  };
+  r.readAsText(file);e.target.value='';
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+function toast(msg){
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;
+  document.getElementById('toast-wrap').appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+// ── HEADER UPDATE ─────────────────────────────────────────────
+function updateHeader(){
+  const p=prof();
+  document.getElementById('hdr-th').textContent=p?'TH'+p.th:'TH?';
+  document.getElementById('hdr-name').textContent=p?p.name:'No Profile';
+  document.getElementById('hdr-avatar').textContent=p?(p.emoji||'🏆'):'👤';
+}
+function noProf(){return`<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">No Profile Selected</div><div class="empty-text">Go to Profiles to create one.</div><button class="btn btn-primary" onclick="switchTab('profiles')">Profiles →</button></div>`}
+
+// ── INIT ──────────────────────────────────────────────────────
+load();
+if(!Object.keys(S.profiles).length){
+  // Auto-show profiles on first run
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>switchTab('profiles'),100));
+}
+updateHeader();
+render();
+setInterval(()=>{if(currentTab==='overview')renderOv()},60000);
+</script>
+</body>
+</html>
